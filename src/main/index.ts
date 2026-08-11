@@ -312,6 +312,32 @@ async function getWindowsSystemStatus(): Promise<SystemStatus> {
   return fallback
 }
 
+async function openLaunchTarget(target: string): Promise<void> {
+  const electronError = await shell.openPath(target)
+  if (!electronError) return
+
+  if (process.platform !== 'win32') throw new Error(electronError)
+
+  try {
+    await execFileAsync(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        "$ErrorActionPreference = 'Stop'; Start-Process -FilePath $env:AURALINE_LAUNCH_TARGET"
+      ],
+      {
+        windowsHide: true,
+        timeout: 8_000,
+        env: { ...process.env, AURALINE_LAUNCH_TARGET: target }
+      }
+    )
+  } catch {
+    throw new Error(electronError)
+  }
+}
+
 async function setShellMode(enabled: boolean): Promise<boolean> {
   if (!mainWindow || mainWindow.isDestroyed()) return false
 
@@ -534,8 +560,7 @@ function registerDockHandlers(): void {
     }
     if (!target || !name) throw new Error('That application is no longer available')
 
-    const error = await shell.openPath(target)
-    if (error) throw new Error(error)
+    await openLaunchTarget(target)
     launcherWindow?.close()
     return { appId, name }
   })

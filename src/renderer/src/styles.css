@@ -168,6 +168,15 @@ input {
   box-shadow: 0 0 0 3px rgba(104, 213, 154, 0.12);
 }
 
+.ready-status-offline .ready-dot {
+  background: #f0a45d;
+  box-shadow: 0 0 0 3px rgba(240, 164, 93, 0.12);
+}
+
+.wifi-disconnected {
+  stroke-width: 2;
+}
+
 .status-icon {
   display: inline-flex;
   align-items: center;

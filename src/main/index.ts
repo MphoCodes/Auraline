@@ -1,5 +1,31 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'node:path'
+
+type WindowControlAction = 'minimize' | 'toggleMaximize' | 'close'
+
+const windowControlActions = new Set<WindowControlAction>([
+  'minimize',
+  'toggleMaximize',
+  'close'
+])
+
+function registerWindowControls(): void {
+  ipcMain.handle('window:control', (event, action: unknown) => {
+    if (typeof action !== 'string' || !windowControlActions.has(action as WindowControlAction)) {
+      throw new Error('Invalid window control action')
+    }
+
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) throw new Error('No window is associated with this request')
+
+    if (action === 'minimize') window.minimize()
+    if (action === 'toggleMaximize') {
+      if (window.isMaximized()) window.unmaximize()
+      else window.maximize()
+    }
+    if (action === 'close') window.close()
+  })
+}
 
 function createWindow(): void {
   const window = new BrowserWindow({
@@ -9,6 +35,8 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     title: 'Auraline',
+    frame: false,
+    backgroundColor: '#101320',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -43,6 +71,8 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   app.setAppUserModelId('com.mphocodes.auraline')
+  Menu.setApplicationMenu(null)
+  registerWindowControls()
   createWindow()
 
   app.on('activate', () => {

@@ -10,7 +10,7 @@
   --text-secondary: #c7cbdb;
   --text-muted: #8e95ae;
   color: #f8f9ff;
-  background: #101320;
+  background: transparent;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -346,6 +346,294 @@ p {
   font-size: 0.9rem;
 }
 
+.desktop-settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px 24px;
+  align-items: center;
+  margin-top: 30px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.desktop-settings div {
+  display: grid;
+  gap: 4px;
+}
+
+.desktop-settings strong {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.desktop-settings span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.setting-toggle {
+  min-width: 54px;
+  min-height: 34px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.setting-toggle[aria-pressed='true'] {
+  border-color: rgba(170, 180, 255, 0.55);
+  background: var(--accent);
+  color: #121522;
+}
+
+.setting-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.setting-toggle:focus-visible,
+.dock-app:focus-visible,
+.dock-tool:focus-visible,
+.dock-remove-button:focus-visible,
+.dock-empty-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.dock {
+  position: fixed;
+  z-index: 10;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 50%;
+  display: flex;
+  max-width: min(920px, calc(100vw - 32px));
+  align-items: center;
+  gap: 8px;
+  min-height: 76px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 23px;
+  background: rgba(24, 28, 47, 0.66);
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(24px) saturate(135%);
+  transform: translateX(-50%);
+}
+
+.dock-apps {
+  display: flex;
+  min-width: 0;
+  align-items: end;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dock-apps::-webkit-scrollbar {
+  display: none;
+}
+
+.dock-app-slot {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.dock-app {
+  position: relative;
+  width: 58px;
+  height: 62px;
+  padding: 0 0 7px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dock-icon {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 15px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  place-items: center;
+}
+
+.dock-app:hover .dock-icon {
+  transform: translateY(-4px) scale(1.04);
+}
+
+.dock-icon img,
+.dock-icon svg,
+.generic-app-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.dock-icon img {
+  object-fit: contain;
+}
+
+.generic-app-icon {
+  display: grid;
+  background: #7783dd;
+  color: white;
+  font-size: 1.35rem;
+  font-weight: 750;
+  place-items: center;
+}
+
+.dock-running-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translateX(-50%);
+}
+
+.dock-remove-button {
+  position: absolute;
+  top: -5px;
+  right: -3px;
+  display: grid;
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  background: #25293b;
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  place-items: center;
+}
+
+.dock-app-slot:hover .dock-remove-button,
+.dock-remove-button:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dock-divider {
+  width: 1px;
+  height: 42px;
+  flex: 0 0 auto;
+  margin: 0 3px;
+  background: var(--border-subtle);
+}
+
+.dock-tool {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  cursor: pointer;
+  place-items: center;
+}
+
+.dock-tool:hover,
+.dock-tool-active {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--text-primary);
+}
+
+.dock-tool-active {
+  color: var(--accent);
+}
+
+.dock-tool svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.dock-tool svg circle {
+  fill: currentColor;
+  stroke: none;
+}
+
+.dock-empty-action,
+.dock-loading {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.dock-empty-action {
+  cursor: pointer;
+}
+
+.dock-popover {
+  min-width: 190px;
+}
+
+.launch-message {
+  position: fixed;
+  bottom: 124px;
+  left: 50%;
+  min-height: 1.5rem;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  transform: translateX(-50%);
+}
+
+.shell-mode {
+  background: transparent;
+}
+
+.shell-mode .desktop-canvas,
+.shell-mode .launch-message {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.shell-mode .menu-bar {
+  background: rgba(17, 20, 34, 0.82);
+}
+
+.shell-surface {
+  width: 100vw;
+  height: 100vh;
+  overflow: visible;
+  background: transparent;
+}
+
+.shell-menu-surface .menu-bar {
+  background: rgba(17, 20, 34, 0.88);
+}
+
+.shell-dock-surface .dock {
+  bottom: max(12px, env(safe-area-inset-bottom));
+}
+
 @media (max-width: 1050px) {
   .ready-status,
   .battery-status span,
@@ -361,5 +649,15 @@ p {
   .menu-trigger {
     padding-right: 8px;
     padding-left: 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .welcome-card {
+    padding: 32px;
+  }
+
+  .dock {
+    bottom: max(16px, env(safe-area-inset-bottom));
   }
 }

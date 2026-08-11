@@ -35,5 +35,8 @@ contextBridge.exposeInMainWorld('auraline', {
   startup: {
     get: () => ipcRenderer.invoke('startup:get'),
     set: (enabled: boolean) => ipcRenderer.invoke('startup:set', enabled)
+  },
+  systemStatus: {
+    get: () => ipcRenderer.invoke('system-status:get')
   }
 })

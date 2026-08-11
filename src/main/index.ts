@@ -1,8 +1,9 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, screen, shell } from 'electron'
-import { spawn } from 'node:child_process'
+import { app, BrowserWindow, dialog, ipcMain, Menu, net, screen, shell } from 'electron'
+import { execFile, spawn } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
+import { promisify } from 'node:util'
 
 type WindowControlAction = 'minimize' | 'toggleMaximize' | 'close'
 
@@ -26,6 +27,20 @@ type AuralineSettings = {
   shellMode: boolean
 }
 
+type SystemStatus = {
+  online: boolean
+  wifi: {
+    connected: boolean
+    name: string | null
+    signal: number | null
+  }
+  battery: {
+    available: boolean
+    level: number | null
+    charging: boolean
+  }
+}
+
 const windowControlActions = new Set<WindowControlAction>([
   'minimize',
   'toggleMaximize',
@@ -39,6 +54,7 @@ let launcherWindow: BrowserWindow | null = null
 let normalWindowBounds = { x: 120, y: 90, width: 1200, height: 800 }
 let taskbarWatchdogStarted = false
 const installedAppTargets = new Map<string, string>()
+const execFileAsync = promisify(execFile)
 
 const taskbarInterop = `
 using System;
@@ -235,6 +251,65 @@ async function getLauncherApps(): Promise<LauncherApp[]> {
 
 function isValidId(value: unknown): value is string {
   return typeof value === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(value)
+}
+
+async function getWindowsSystemStatus(): Promise<SystemStatus> {
+  const fallback: SystemStatus = {
+    online: net.isOnline(),
+    wifi: { connected: false, name: null, signal: null },
+    battery: { available: false, level: null, charging: false }
+  }
+
+  if (process.platform !== 'win32') return fallback
+
+  const batteryCommand =
+    "$battery = Get-CimInstance -ClassName Win32_Battery -ErrorAction SilentlyContinue | Select-Object -First 1 EstimatedChargeRemaining,BatteryStatus; if ($null -eq $battery) { '{}' } else { $battery | ConvertTo-Json -Compress }"
+
+  const [wifiResult, batteryResult] = await Promise.allSettled([
+    execFileAsync('netsh.exe', ['wlan', 'show', 'interfaces'], {
+      windowsHide: true,
+      timeout: 5_000
+    }),
+    execFileAsync(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', batteryCommand],
+      { windowsHide: true, timeout: 5_000 }
+    )
+  ])
+
+  if (wifiResult.status === 'fulfilled') {
+    const output = wifiResult.value.stdout
+    const state = output.match(/^\s*State\s*:\s*(.+)$/im)?.[1]?.trim().toLocaleLowerCase()
+    const name = output.match(/^\s*SSID\s*:\s*(.+)$/im)?.[1]?.trim() ?? null
+    const signalText = output.match(/^\s*Signal\s*:\s*(\d+)%/im)?.[1]
+    fallback.wifi = {
+      connected: state === 'connected',
+      name: state === 'connected' ? name : null,
+      signal: signalText ? Number(signalText) : null
+    }
+  }
+
+  if (batteryResult.status === 'fulfilled') {
+    try {
+      const battery = JSON.parse(batteryResult.value.stdout.trim() || '{}') as {
+        EstimatedChargeRemaining?: unknown
+        BatteryStatus?: unknown
+      }
+      const level = Number(battery.EstimatedChargeRemaining)
+      const status = Number(battery.BatteryStatus)
+      if (Number.isFinite(level)) {
+        fallback.battery = {
+          available: true,
+          level: Math.max(0, Math.min(100, level)),
+          charging: Number.isFinite(status) && ![1, 4, 5].includes(status)
+        }
+      }
+    } catch {
+      // Keep the unavailable fallback when Windows does not report a battery.
+    }
+  }
+
+  return fallback
 }
 
 async function setShellMode(enabled: boolean): Promise<boolean> {
@@ -490,6 +565,10 @@ function registerStartupHandlers(): void {
   })
 }
 
+function registerSystemStatusHandlers(): void {
+  ipcMain.handle('system-status:get', () => getWindowsSystemStatus())
+}
+
 function createWindow(): void {
   const primaryWorkArea = screen.getPrimaryDisplay().workArea
   const width = Math.min(1200, primaryWorkArea.width)
@@ -546,6 +625,7 @@ app.whenReady().then(() => {
   registerWindowControls()
   registerDockHandlers()
   registerStartupHandlers()
+  registerSystemStatusHandlers()
   createWindow()
 
   app.on('activate', () => {

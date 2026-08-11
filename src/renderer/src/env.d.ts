@@ -16,6 +16,20 @@ type LauncherApp = DockApp & {
   pinned: boolean
 }
 
+type SystemStatus = {
+  online: boolean
+  wifi: {
+    connected: boolean
+    name: string | null
+    signal: number | null
+  }
+  battery: {
+    available: boolean
+    level: number | null
+    charging: boolean
+  }
+}
+
 interface Window {
   auraline: {
     version: string
@@ -46,6 +60,9 @@ interface Window {
     startup: {
       get: () => Promise<StartupState>
       set: (enabled: boolean) => Promise<StartupState>
+    }
+    systemStatus: {
+      get: () => Promise<SystemStatus>
     }
   }
 }

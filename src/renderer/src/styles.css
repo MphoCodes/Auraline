@@ -556,6 +556,12 @@ p {
   color: var(--accent);
 }
 
+.launcher-button {
+  border-color: rgba(170, 180, 255, 0.24);
+  background: rgba(170, 180, 255, 0.12);
+  color: var(--accent);
+}
+
 .dock-tool svg {
   width: 20px;
   height: 20px;
@@ -632,6 +638,246 @@ p {
 
 .shell-dock-surface .dock {
   bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.app-launcher {
+  display: grid;
+  height: 100vh;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 18px;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 28px;
+  background: rgba(17, 20, 34, 0.96);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.48);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.launcher-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.launcher-header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.launcher-eyebrow {
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.launcher-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.launcher-close {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  cursor: pointer;
+  place-items: center;
+}
+
+.launcher-close:hover {
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--text-primary);
+}
+
+.launcher-close svg,
+.launcher-search svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.launcher-search {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-muted);
+}
+
+.launcher-search:focus-within {
+  border-color: var(--accent);
+  outline: 2px solid rgba(170, 180, 255, 0.22);
+}
+
+.launcher-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.launcher-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.launcher-content {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.launcher-grid,
+.launcher-loading {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 10px;
+}
+
+.launcher-app {
+  display: grid;
+  min-width: 0;
+  min-height: 112px;
+  grid-template-rows: 52px auto auto;
+  justify-items: center;
+  gap: 6px;
+  padding: 11px 8px 9px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.launcher-app:hover,
+.launcher-app:focus-visible {
+  border-color: var(--border-subtle);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.launcher-app:focus-visible,
+.launcher-close:focus-visible,
+.launcher-empty button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.launcher-app-icon,
+.launcher-app-icon img,
+.launcher-generic-icon {
+  width: 52px;
+  height: 52px;
+}
+
+.launcher-app-icon {
+  display: grid;
+  overflow: hidden;
+  border-radius: 13px;
+  place-items: center;
+}
+
+.launcher-app-icon img {
+  object-fit: contain;
+}
+
+.launcher-generic-icon {
+  display: grid;
+  background: #7783dd;
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 750;
+  place-items: center;
+}
+
+.launcher-app-name {
+  width: 100%;
+  overflow: hidden;
+  font-size: 0.74rem;
+  font-weight: 620;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.launcher-pinned {
+  color: var(--accent);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.launcher-error {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 112, 126, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 112, 126, 0.08);
+  color: #ffb5bd;
+  font-size: 0.78rem;
+}
+
+.launcher-loading {
+  padding-top: 4px;
+}
+
+.launcher-skeleton {
+  min-height: 112px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.launcher-empty {
+  display: grid;
+  min-height: 240px;
+  align-content: center;
+  justify-items: center;
+  gap: 7px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.launcher-empty strong {
+  color: var(--text-primary);
+}
+
+.launcher-empty span {
+  font-size: 0.8rem;
+}
+
+.launcher-empty button {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-primary);
+  cursor: pointer;
 }
 
 @media (max-width: 1050px) {

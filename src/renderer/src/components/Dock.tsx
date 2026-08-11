@@ -23,6 +23,17 @@ function AddIcon() {
   )
 }
 
+function LauncherIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <rect x="4" y="4" width="6" height="6" rx="1.5" />
+      <rect x="14" y="4" width="6" height="6" rx="1.5" />
+      <rect x="4" y="14" width="6" height="6" rx="1.5" />
+      <path d="M17 13.5 20.5 20h-7L17 13.5Z" />
+    </svg>
+  )
+}
+
 function DesktopModeIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -97,6 +108,18 @@ function Dock({ shellMode, onShellModeChange, onStatus }: DockProps) {
 
   return (
     <nav className="dock interactive-surface" aria-label="Auraline app dock">
+      <button
+        aria-label="Open Auraline applications menu"
+        className="dock-tool launcher-button"
+        type="button"
+        onClick={() => void window.auraline.launcher.toggle()}
+        title="Applications"
+      >
+        <LauncherIcon />
+      </button>
+
+      <span aria-hidden="true" className="dock-divider" />
+
       <div className="dock-apps" aria-label="Pinned applications">
         {loading && <span className="dock-loading">Loading dock…</span>}
 

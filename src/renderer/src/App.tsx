@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import Dock from './components/Dock'
+import AppLauncher from './components/AppLauncher'
 import MenuBar from './components/MenuBar'
 
 function ShellMenuSurface() {
@@ -134,6 +135,7 @@ function App() {
   const surface = new URLSearchParams(window.location.search).get('surface')
   if (surface === 'menu') return <ShellMenuSurface />
   if (surface === 'dock') return <ShellDockSurface />
+  if (surface === 'launcher') return <AppLauncher />
   return <ControlCenter />
 }
 

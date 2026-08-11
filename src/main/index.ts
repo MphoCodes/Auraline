@@ -561,7 +561,10 @@ function registerDockHandlers(): void {
     if (!target || !name) throw new Error('That application is no longer available')
 
     await openLaunchTarget(target)
-    launcherWindow?.close()
+    const completedLauncher = launcherWindow
+    setTimeout(() => {
+      if (launcherWindow === completedLauncher) launcherWindow?.close()
+    }, 250)
     return { appId, name }
   })
 

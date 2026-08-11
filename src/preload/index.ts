@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld('auraline', {
   apps: {
     launch: (appId: DockAppId) => ipcRenderer.invoke('app:launch', appId)
   },
+  launcher: {
+    list: () => ipcRenderer.invoke('launcher:list'),
+    toggle: () => ipcRenderer.invoke('launcher:toggle') as Promise<boolean>,
+    close: () => ipcRenderer.invoke('launcher:close') as Promise<void>
+  },
   startup: {
     get: () => ipcRenderer.invoke('startup:get'),
     set: (enabled: boolean) => ipcRenderer.invoke('startup:set', enabled)

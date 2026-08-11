@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, screen, shell } from 'electron'
 import { spawn } from 'node:child_process'
-import { randomUUID } from 'node:crypto'
-import { readFile, writeFile } from 'node:fs/promises'
+import { createHash, randomUUID } from 'node:crypto'
+import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 
 type WindowControlAction = 'minimize' | 'toggleMaximize' | 'close'
@@ -15,6 +15,10 @@ type StoredDockApp = {
 
 type DockApp = Omit<StoredDockApp, 'target'> & {
   iconDataUrl: string | null
+}
+
+type LauncherApp = DockApp & {
+  pinned: boolean
 }
 
 type AuralineSettings = {
@@ -31,8 +35,10 @@ const windowControlActions = new Set<WindowControlAction>([
 let mainWindow: BrowserWindow | null = null
 let menuWindow: BrowserWindow | null = null
 let dockWindow: BrowserWindow | null = null
+let launcherWindow: BrowserWindow | null = null
 let normalWindowBounds = { x: 120, y: 90, width: 1200, height: 800 }
 let taskbarWatchdogStarted = false
+const installedAppTargets = new Map<string, string>()
 
 const taskbarInterop = `
 using System;
@@ -141,7 +147,16 @@ async function updateSettings(
 
 async function hydrateDockApp(dockApp: StoredDockApp): Promise<DockApp> {
   try {
-    const icon = await app.getFileIcon(dockApp.target, { size: 'large' })
+    let iconTarget = dockApp.target
+    if (extname(dockApp.target).toLocaleLowerCase() === '.lnk') {
+      try {
+        const shortcut = shell.readShortcutLink(dockApp.target)
+        iconTarget = shortcut.icon || shortcut.target || dockApp.target
+      } catch {
+        iconTarget = dockApp.target
+      }
+    }
+    const icon = await app.getFileIcon(iconTarget, { size: 'large' })
     return { ...dockApp, iconDataUrl: icon.isEmpty() ? null : icon.toDataURL() }
   } catch {
     return { ...dockApp, iconDataUrl: null }
@@ -151,6 +166,71 @@ async function hydrateDockApp(dockApp: StoredDockApp): Promise<DockApp> {
 async function getDockApps(): Promise<DockApp[]> {
   const settings = await readSettings()
   return Promise.all(settings.dockApps.map(hydrateDockApp))
+}
+
+async function findLaunchTargets(directory: string): Promise<string[]> {
+  try {
+    const entries = await readdir(directory, { withFileTypes: true })
+    const nestedTargets = await Promise.all(
+      entries.map(async (entry) => {
+        const path = join(directory, entry.name)
+        if (entry.isDirectory()) return findLaunchTargets(path)
+        const extension = extname(entry.name).toLocaleLowerCase()
+        if (!['.lnk', '.exe', '.appref-ms', '.url'].includes(extension)) return []
+        if (/uninstall|remove|repair/i.test(entry.name)) return []
+        return [path]
+      })
+    )
+    return nestedTargets.flat()
+  } catch {
+    return []
+  }
+}
+
+async function getLauncherApps(): Promise<LauncherApp[]> {
+  const programData = process.env.ProgramData ?? 'C:\\ProgramData'
+  const startMenuDirectories = [
+    join(programData, 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
+    join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs')
+  ]
+  const [targetsByDirectory, settings] = await Promise.all([
+    Promise.all(startMenuDirectories.map(findLaunchTargets)),
+    readSettings()
+  ])
+  const pinnedTargets = new Set(
+    settings.dockApps.map((dockApp) => dockApp.target.toLocaleLowerCase())
+  )
+  const uniqueTargets = new Map<string, string>()
+
+  for (const target of targetsByDirectory.flat()) {
+    const name = basename(target, extname(target)).trim()
+    const normalizedName = name.toLocaleLowerCase()
+    if (name && !uniqueTargets.has(normalizedName)) uniqueTargets.set(normalizedName, target)
+  }
+
+  installedAppTargets.clear()
+  const launcherApps = await Promise.all(
+    [...uniqueTargets.entries()].map(async ([normalizedName, target]) => {
+      const hash = createHash('sha256').update(target.toLocaleLowerCase()).digest('hex').slice(0, 20)
+      const id = `installed-${hash}`
+      installedAppTargets.set(id, target)
+      const hydrated = await hydrateDockApp({
+        id,
+        name: basename(target, extname(target)),
+        target
+      })
+      return {
+        ...hydrated,
+        name: hydrated.name.trim(),
+        pinned: pinnedTargets.has(target.toLocaleLowerCase()),
+        sortName: normalizedName
+      }
+    })
+  )
+
+  return launcherApps
+    .sort((left, right) => left.sortName.localeCompare(right.sortName))
+    .map(({ sortName: _sortName, ...launcherApp }) => launcherApp)
 }
 
 function isValidId(value: unknown): value is string {
@@ -171,8 +251,10 @@ async function setShellMode(enabled: boolean): Promise<boolean> {
     setNativeTaskbarVisible(true)
     menuWindow?.destroy()
     dockWindow?.destroy()
+    launcherWindow?.destroy()
     menuWindow = null
     dockWindow = null
+    launcherWindow = null
     mainWindow.setBounds(normalWindowBounds)
     mainWindow.show()
     mainWindow.focus()
@@ -185,7 +267,7 @@ async function setShellMode(enabled: boolean): Promise<boolean> {
   return enabled
 }
 
-function loadRenderer(window: BrowserWindow, surface?: 'menu' | 'dock'): void {
+function loadRenderer(window: BrowserWindow, surface?: 'menu' | 'dock' | 'launcher'): void {
   const query = surface ? `?surface=${surface}` : ''
   if (process.env.ELECTRON_RENDERER_URL) {
     void window.loadURL(`${process.env.ELECTRON_RENDERER_URL}${query}`)
@@ -196,7 +278,10 @@ function loadRenderer(window: BrowserWindow, surface?: 'menu' | 'dock'): void {
   }
 }
 
-function createShellWindow(bounds: Electron.Rectangle, surface: 'menu' | 'dock'): BrowserWindow {
+function createShellWindow(
+  bounds: Electron.Rectangle,
+  surface: 'menu' | 'dock' | 'launcher'
+): BrowserWindow {
   const window = new BrowserWindow({
     ...bounds,
     show: false,
@@ -221,6 +306,32 @@ function createShellWindow(bounds: Electron.Rectangle, surface: 'menu' | 'dock')
   window.once('ready-to-show', () => window.showInactive())
   loadRenderer(window, surface)
   return window
+}
+
+function toggleLauncher(owner: BrowserWindow): boolean {
+  if (launcherWindow && !launcherWindow.isDestroyed()) {
+    launcherWindow.destroy()
+    launcherWindow = null
+    return false
+  }
+
+  const display = screen.getDisplayMatching(owner.getBounds())
+  const width = Math.min(760, display.workArea.width - 32)
+  const height = Math.min(560, display.workArea.height - 170)
+  launcherWindow = createShellWindow(
+    {
+      x: display.bounds.x + Math.round((display.bounds.width - width) / 2),
+      y: display.bounds.y + display.bounds.height - height - 240,
+      width,
+      height
+    },
+    'launcher'
+  )
+  launcherWindow.setAlwaysOnTop(true, 'pop-up-menu')
+  launcherWindow.on('closed', () => {
+    launcherWindow = null
+  })
+  return true
 }
 
 function createShellSurfaces(display: Electron.Display): void {
@@ -338,11 +449,30 @@ function registerDockHandlers(): void {
     if (!isValidId(appId)) throw new Error('Invalid dock app ID')
     const settings = await readSettings()
     const dockApp = settings.dockApps.find((candidate) => candidate.id === appId)
-    if (!dockApp) throw new Error('That app is no longer pinned')
+    let target = dockApp?.target ?? installedAppTargets.get(appId)
+    let name = dockApp?.name
+    if (!target) {
+      const launcherApps = await getLauncherApps()
+      const launcherApp = launcherApps.find((candidate) => candidate.id === appId)
+      target = launcherApp ? installedAppTargets.get(launcherApp.id) : undefined
+      name = launcherApp?.name
+    }
+    if (!target || !name) throw new Error('That application is no longer available')
 
-    const error = await shell.openPath(dockApp.target)
+    const error = await shell.openPath(target)
     if (error) throw new Error(error)
-    return { appId: dockApp.id, name: dockApp.name }
+    launcherWindow?.close()
+    return { appId, name }
+  })
+
+  ipcMain.handle('launcher:list', () => getLauncherApps())
+  ipcMain.handle('launcher:toggle', (event) => {
+    const owner = BrowserWindow.fromWebContents(event.sender)
+    if (!owner) throw new Error('No window is associated with this request')
+    return toggleLauncher(owner)
+  })
+  ipcMain.handle('launcher:close', () => {
+    launcherWindow?.close()
   })
 }
 

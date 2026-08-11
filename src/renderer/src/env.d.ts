@@ -12,6 +12,10 @@ type StartupState = {
   enabled: boolean
 }
 
+type LauncherApp = DockApp & {
+  pinned: boolean
+}
+
 interface Window {
   auraline: {
     version: string
@@ -33,6 +37,11 @@ interface Window {
     }
     apps: {
       launch: (appId: string) => Promise<{ appId: string; name: string }>
+    }
+    launcher: {
+      list: () => Promise<LauncherApp[]>
+      toggle: () => Promise<boolean>
+      close: () => Promise<void>
     }
     startup: {
       get: () => Promise<StartupState>

@@ -1,8 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+import type { AuralineApi } from '../shared/contracts'
 type DockAppId = string
 
-contextBridge.exposeInMainWorld('auraline', {
+const api: AuralineApi = {
   version: '0.1.0',
   windowControls: {
     minimize: () => ipcRenderer.invoke('window:control', 'minimize'),
@@ -39,4 +40,6 @@ contextBridge.exposeInMainWorld('auraline', {
   systemStatus: {
     get: () => ipcRenderer.invoke('system-status:get')
   }
-})
+}
+
+contextBridge.exposeInMainWorld('auraline', api)

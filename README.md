@@ -30,6 +30,8 @@ npm start
 
 ## Windows installer
 
+Download the [Windows preview installer](https://github.com/MphoCodes/Auraline/releases/tag/v0.1.0-preview.1), or build it yourself below.
+
 On Windows, run:
 
 ```sh

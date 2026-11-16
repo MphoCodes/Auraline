@@ -9,3 +9,5 @@ Validation: Node 22; clean dependency installation, TypeScript check, five regre
 Manual Windows acceptance: launch pinned and discovered apps, add/remove/reset pins, toggle shell mode and restore taskbar on exit, verify crash watchdog, restart persistence, multi-monitor positions, Wi-Fi/battery status and installed startup registration. Wi-Fi currently expects English netsh output. Signing and release publication are not configured.
 
 Dependency maintenance: existing high-severity Electron/Vite/transitive advisories were resolved within declared version ranges. Electron Builder still brings six moderate development-only audit findings through minimatch; npm's suggested forced fix downgrades Builder, so it was not applied. Reassess upstream updates before release.
+
+Windows GitHub CI run 43833856751 passed at 4f34202. Its unsigned x64 installer and checksum are published as v0.1.0-preview.1. Independent source review found no material issue. Interactive Windows validation remains outstanding.
